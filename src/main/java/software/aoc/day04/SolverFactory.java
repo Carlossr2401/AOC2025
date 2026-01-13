@@ -3,19 +3,16 @@ package software.aoc.day04;
 import software.aoc.day04.a.Part1Solver;
 import software.aoc.day04.b.Part2Solver;
 
-import java.io.IOException;
+
 
 public class SolverFactory {
 
-    public static Solver createSolver(String part, String filePath) throws IOException {
-        InstructionReader<PaperRollMap> reader = new FileInstructionReader(filePath);
-        PaperRollMap map = reader.readAllLines();
-
+    public static Solver createSolver(String part, InstructionReader<PaperRollMap> reader) {
         switch (part.toUpperCase()) {
             case "A":
-                return new Part1Solver(map);
+                return new Part1Solver(reader);
             case "B":
-                return new Part2Solver(map);
+                return new Part2Solver(reader);
             default:
                 throw new IllegalArgumentException("Unknown part: " + part);
         }

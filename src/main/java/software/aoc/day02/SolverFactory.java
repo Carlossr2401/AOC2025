@@ -12,9 +12,7 @@ public class SolverFactory {
         PART_B
     }
 
-    public static Solver createSolver(SolverType type, String filePath) {
-        InstructionReader reader = ReaderFactory.createReader(filePath);
-        
+    public static Solver createSolver(SolverType type, InstructionReader reader) {
         switch (type) {
             case PART_A:
                 return new SolverA(reader, new SymmetryValidator());

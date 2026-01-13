@@ -9,12 +9,12 @@ En este proyecto se aplican estrictamente los principios SOLID y Clean Code, jun
 ### 1. Principios SOLID
 
 - **Single Responsibility Principle (SRP)**:
-  - `SolverFactory`: Responsable únicamente de la creación de los objetos Solver.
+  - `ReaderFactory` y `SolverFactory`: Responsables únicamente de la creación de objetos.
   - `FileInstructionReader`: Responsable de la lectura y parseo del archivo de entrada hacia un modelo de objetos (`PaperRollMap`).
   - `Part1Solver` / `Part2Solver`: Contienen la lógica específica de resolución para cada parte del problema (conteo estático vs simulación iterativa).
   - `PaperRollMap`: Record inmutable que modela el estado de la cuadrícula y sus operaciones básicas.
 - **Open/Closed Principle (OCP)**:
-  - El sistema es extensible mediante interfaces. Se pueden agregar nuevos tipos de `InstructionReader` sin modificar los Solvers.
+  - El sistema es extensible mediante interfaces. Se pueden agregar nuevos tipos de `InstructionReader` sin modificar los Solvers ni el orquestador principal.
   - Para agregar una nueva lógica de resolución (ej. Parte 3), basta con crear una nueva implementación de `Solver` y registrarla en la fábrica.
 - **Liskov Substitution Principle (LSP)**:
   - `Part1Solver` y `Part2Solver` implementan la interfaz `Solver`, siendo intercambiables para el cliente (`Main`).
@@ -23,6 +23,7 @@ En este proyecto se aplican estrictamente los principios SOLID y Clean Code, jun
   - `InstructionReader` es una interfaz específica que define un contrato claro asociado a una única funcionalidad (leer líneas y devolver un objeto de dominio).
 - **Dependency Inversion Principle (DIP)**:
   - Los módulos de alto nivel (`Main`) dependen de abstracciones (`Solver`, `InstructionReader`), no de las implementaciones concretas de bajo nivel.
+  - La inyección de dependencias (`InstructionReader` en `SolverFactory`) se coordina desde el `Main`, invirtiendo el control de creación.
 
 ### 2. Patrones de Diseño
 
@@ -34,10 +35,12 @@ Se han implementado patrones de diseño para resolver problemas de creación y c
 
 - **Factory Pattern (Fábrica)**:
 
-  - `SolverFactory`: Centraliza la creación de los Solvers. Basado en un parámetro (tipo "A" o "B"), decide qué estrategia de solver instanciar, orquestando la lectura de datos mediante el `InstructionReader`.
+  - `SolverFactory`: Centraliza la creación de los Solvers. Basado en un parámetro (tipo "A" o "B"), decide qué estrategia de solver instanciar e inyecta las dependencias necesarias.
+  - `ReaderFactory`: Abstrae la creación del lector de instrucciones (`InstructionReader`).
 
 - **Dependency Injection**:
-  - Las dependencias principales (el modelo `PaperRollMap`) se inyectan en los constructores de `Part1Solver` y `Part2Solver`, separando la construcción del grafo de objetos de su uso.
+  - Las dependencias principales (el lector de datos `InstructionReader`) se inyectan en los constructores de `Part1Solver` y `Part2Solver`, separando la obtención de datos de su procesamiento.
+  - `Main` orquesta la creación de dependencias y su inyección.
 
 ### 3. Clean Code y Refactorización
 
@@ -56,7 +59,11 @@ classDiagram
     }
 
     class SolverFactory {
-        +createSolver(part: String, filePath: String) Solver$
+        +createSolver(part: String, reader: InstructionReader~PaperRollMap~) Solver$
+    }
+
+    class ReaderFactory {
+        +createReader(filePath: String) InstructionReader~PaperRollMap~$
     }
 
     class Solver {
@@ -65,15 +72,17 @@ classDiagram
     }
 
     class Part1Solver {
-        +Part1Solver(rollMap: PaperRollMap)
+        -reader: InstructionReader~PaperRollMap~
+        +Part1Solver(reader: InstructionReader~PaperRollMap~)
         +solve() int
-        -isRoll(row: int, col: int) boolean
-        -isAccessible(row: int, col: int) boolean
-        -isValidPosition(row: int, col: int) boolean
+        -isRoll(map: PaperRollMap, row: int, col: int) boolean
+        -isAccessible(map: PaperRollMap, row: int, col: int) boolean
+        -isValidPosition(map: PaperRollMap, row: int, col: int) boolean
     }
 
     class Part2Solver {
-        +Part2Solver(initialMap: PaperRollMap)
+        -reader: InstructionReader~PaperRollMap~
+        +Part2Solver(reader: InstructionReader~PaperRollMap~)
         +solve() int
         -findViableRollsInIteration(map: PaperRollMap) MapFinderResult
         -isRoll(map: PaperRollMap, row: int, col: int) boolean
@@ -98,16 +107,19 @@ classDiagram
     }
 
     Main ..> SolverFactory : usa
+    Main ..> ReaderFactory : usa
+    Main ..> InstructionReader : usa (inyecta)
     SolverFactory ..> Solver : crea
     SolverFactory ..> Part1Solver : instancia
     SolverFactory ..> Part2Solver : instancia
-    SolverFactory ..> FileInstructionReader : usa
 
     Part1Solver ..|> Solver : implementa
     Part2Solver ..|> Solver : implementa
 
-    Part1Solver --> PaperRollMap : usa
-    Part2Solver --> PaperRollMap : usa
+    Part1Solver --> InstructionReader : usa
+    Part1Solver ..> PaperRollMap : usa
+    Part2Solver --> InstructionReader : usa
+    Part2Solver ..> PaperRollMap : usa
 
     FileInstructionReader ..|> InstructionReader : implementa
     FileInstructionReader ..> PaperRollMap : crea

@@ -10,8 +10,7 @@ public class SolverFactory {
         PART_B
     }
 
-    public static Solver createSolver(SolverType type, String filePath) {
-        InputReader reader = new FileInstructionReader(filePath);
+    public static Solver createSolver(SolverType type, InputReader reader) {
         switch (type) {
             case PART_A:
                 return new SolverA(reader);

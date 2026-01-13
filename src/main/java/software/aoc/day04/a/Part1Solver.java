@@ -1,22 +1,29 @@
 package software.aoc.day04.a;
 
+import software.aoc.day04.InstructionReader;
 import software.aoc.day04.PaperRollMap;
 import software.aoc.day04.Solver;
 
-public record Part1Solver(PaperRollMap rollMap) implements Solver {
+public class Part1Solver implements Solver {
 
+    private final InstructionReader<PaperRollMap> reader;
     private static final String ROLL_SYMBOL = "@";
     private static final int MAX_NEIGHBORS = 4;
 
+    public Part1Solver(InstructionReader<PaperRollMap> reader) {
+        this.reader = reader;
+    }
+
     @Override
-    public int solve() {
+    public int solve() throws java.io.IOException {
+        PaperRollMap rollMap = reader.readAllLines();
         int accessibleRolls = 0;
         int rowCount = rollMap.getRows();
         int colCount = rollMap.getCols();
 
         for (int row = 0; row < rowCount; row++) {
             for (int col = 0; col < colCount; col++) {
-                if (isRoll(row, col) && isAccessible(row, col)) {
+                if (isRoll(rollMap, row, col) && isAccessible(rollMap, row, col)) {
                     accessibleRolls++;
                 }
             }
@@ -24,15 +31,15 @@ public record Part1Solver(PaperRollMap rollMap) implements Solver {
         return accessibleRolls;
     }
 
-    private boolean isRoll(int row, int col) {
+    private boolean isRoll(PaperRollMap rollMap, int row, int col) {
         return rollMap.getValue(row, col).equals(ROLL_SYMBOL);
     }
 
-    private boolean isAccessible(int row, int col) {
-        return countAdjacentRolls(row, col) < MAX_NEIGHBORS;
+    private boolean isAccessible(PaperRollMap rollMap, int row, int col) {
+        return countAdjacentRolls(rollMap, row, col) < MAX_NEIGHBORS;
     }
 
-    private int countAdjacentRolls(int row, int col) {
+    private int countAdjacentRolls(PaperRollMap rollMap, int row, int col) {
         int rollCount = 0;
 
         for (int rowOffset = -1; rowOffset <= 1; rowOffset++) {
@@ -42,7 +49,7 @@ public record Part1Solver(PaperRollMap rollMap) implements Solver {
                 int neighborRow = row + rowOffset;
                 int neighborCol = col + colOffset;
 
-                if (isValidPosition(neighborRow, neighborCol) && isRoll(neighborRow, neighborCol)) {
+                if (isValidPosition(rollMap, neighborRow, neighborCol) && isRoll(rollMap, neighborRow, neighborCol)) {
                     rollCount++;
                 }
             }
@@ -50,7 +57,7 @@ public record Part1Solver(PaperRollMap rollMap) implements Solver {
         return rollCount;
     }
 
-    private boolean isValidPosition(int row, int col) {
+    private boolean isValidPosition(PaperRollMap rollMap, int row, int col) {
         return row >= 0 && row < rollMap.getRows() && col >= 0 && col < rollMap.getCols();
     }
 }

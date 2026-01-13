@@ -9,21 +9,22 @@ En este proyecto se aplican estrictamente los principios SOLID y Clean Code, jun
 ### 1. Principios SOLID
 
 - **Single Responsibility Principle (SRP)**:
-  - `SolverFactory`: Responsable únicamente de la creación de los objetos Solver.
+  - `ReaderFactory` y `SolverFactory`: Responsables únicamente de la creación de objetos.
   - `FileInstructionReader`: Responsable de la lectura y parseo del archivo de entrada.
   - `SolverA` / `SolverB`: Coordinan la lógica de resolución para cada parte del problema.
   - `VoltageCalculator`: Encapsula la lógica de negocio para procesar listas de voltajes.
   - `MaxFinder`: Responsable específica de encontrar valores máximos (usado por el calculador).
 - **Open/Closed Principle (OCP)**:
-  - El sistema es extensible mediante interfaces. Se pueden agregar nuevos tipos de `InputReader` sin modificar los Solvers.
+  - El sistema es extensible mediante interfaces. Se pueden agregar nuevos tipos de `InputReader` sin modificar los Solvers ni el orquestador principal.
   - Para agregar una nueva forma de procesar voltajes, basta con crear una nueva implementación de `VoltageProcessor`.
 - **Liskov Substitution Principle (LSP)**:
   - `SolverA` y `SolverB` implementan la interfaz `Solver`, siendo intercambiables para el cliente (`Main`).
   - `FileInstructionReader` implementa `InputReader` y puede ser sustituido por cualquier otra fuente de datos (ej. red, base de datos) sin romper el sistema.
 - **Interface Segregation Principle (ISP)**:
-  - `InputReader` y `VoltageProcessor` son interfaces específicas que definen contratos claros asociados a una única funcionalidad (leer datos, procesar voltajes).
+  - `InputReader`, `VoltageProcessor` y `Solver` son interfaces específicas que definen contratos claros asociados a una única funcionalidad.
 - **Dependency Inversion Principle (DIP)**:
   - Los módulos de alto nivel (`Main`, `SolverA`, `SolverB`) dependen de abstracciones (`Solver`, `InputReader`, `VoltageProcessor`), no de implementaciones concretas.
+  - La inyección de dependencias (`InputReader` en `SolverFactory`) se coordina desde el `Main`, invirtiendo el control de creación.
 
 ### 2. Patrones de Diseño
 
@@ -37,10 +38,12 @@ Se han implementado patrones de diseño para resolver problemas de creación y c
 
 - **Factory Pattern (Fábrica)**:
 
-  - `SolverFactory`: Centraliza la creación de los Solvers. Basado en un parámetro (`SolverType`), decide qué estrategia de solver instanciar e inyecta las dependencias necesarias (como el `InputReader` apropiado).
+  - `SolverFactory`: Centraliza la creación de los Solvers. Basado en un parámetro (`SolverType`), instancia la implementación adecuada (`SolverA` o `SolverB`) e inyecta las dependencias necesarias.
+  - `ReaderFactory`: Abstrae la creación del lector de instrucciones (`InputReader`).
 
 - **Dependency Injection**:
-  - Las dependencias principales (`InputReader`, `VoltageProcessor`) se inyectan en los constructores de `SolverA` y `SolverB`, facilitando el testing y la flexibilidad.
+  - Las dependencias principales (`InputReader`) se inyectan en los constructores de `SolverA` y `SolverB` a través del `SolverFactory`.
+  - `Main` orquesta la creación de dependencias y su inyección.
 
 ### 3. Diagrama de Arquitectura
 
@@ -51,7 +54,11 @@ classDiagram
     }
 
     class SolverFactory {
-        +createSolver(type: SolverType, filePath: String) Solver$
+        +createSolver(type: SolverType, reader: InputReader) Solver$
+    }
+
+    class ReaderFactory {
+        +createReader(filePath: String) InputReader$
     }
 
     class Solver {
@@ -60,11 +67,17 @@ classDiagram
     }
 
     class SolverA {
+        -reader: InputReader
+        -calculator: VoltageProcessor
         +SolverA(reader: InputReader)
+        +solve() long
     }
 
     class SolverB {
+        -reader: InputReader
+        -calculator: VoltageProcessor
         +SolverB(reader: InputReader)
+        +solve() long
     }
 
     class InputReader {
@@ -92,6 +105,8 @@ classDiagram
     }
 
     Main ..> SolverFactory : usa
+    Main ..> ReaderFactory : usa
+    Main ..> InputReader : usa (inyecta)
     SolverFactory ..> Solver : crea
     SolverFactory ..> SolverA : instancia
     SolverFactory ..> SolverB : instancia

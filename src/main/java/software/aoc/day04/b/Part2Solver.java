@@ -7,16 +7,24 @@ import software.aoc.day04.Solver;
 import java.util.ArrayList;
 import java.util.List;
 
-public record Part2Solver(PaperRollMap initialMap) implements Solver {
+import software.aoc.day04.InstructionReader;
 
+public class Part2Solver implements Solver {
+
+    private final InstructionReader<PaperRollMap> reader;
     private static final String ROLL_SYMBOL = "@";
     private static final String EMPTY_SYMBOL = ".";
     private static final int MAX_NEIGHBORS = 4;
 
+    public Part2Solver(InstructionReader<PaperRollMap> reader) {
+        this.reader = reader;
+    }
+
     @Override
-    public int solve() {
+    public int solve() throws java.io.IOException {
+        PaperRollMap initialMap = reader.readAllLines();
         int totalRemoved = 0;
-        PaperRollMap currentMap = this.initialMap;
+        PaperRollMap currentMap = initialMap;
 
         while (true) {
             MapFinderResult iterationResult = findViableRollsInIteration(currentMap);

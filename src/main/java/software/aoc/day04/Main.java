@@ -6,12 +6,13 @@ public class Main {
     public static void main(String[] args) throws IOException {
         // Strategy for Part A
         System.out.println("Solving Part A...");
-        Solver solverA = SolverFactory.createSolver("A", "src/main/java/software/aoc/day4/resources/map.txt");
-        System.out.println("Result Part A: " + solverA.solve());
+        String filePath = "src/main/java/software/aoc/day04/resources/input.txt";
+        InstructionReader<PaperRollMap> reader = ReaderFactory.createReader(filePath);
 
-        // Strategy for Part B
-        System.out.println("Solving Part B...");
-        Solver solverB = SolverFactory.createSolver("B", "src/main/java/software/aoc/day4/resources/map.txt");
-        System.out.println("Result Part B: " + solverB.solve());
+        Solver solverA = SolverFactory.createSolver("A", reader);
+        System.out.println("Result Part 1: " + solverA.solve());
+
+        Solver solverB = SolverFactory.createSolver("B", reader);
+        System.out.println("Result Part 2: " + solverB.solve());
     }
 }

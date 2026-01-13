@@ -104,3 +104,61 @@ src/main/java/software/aoc/
 - **Lenguaje:** Java 17+ (Uso extensivo de `records`, `switch expressions`, `var`).
 - **Gestor de Dependencias:** Maven
 - **Control de Versiones:** Git
+
+## Proyección Arquitectónica: Ejecución Unificada (Global Strategy)
+
+Gracias a la estandarización masiva de la arquitectura en todos los días (Factories estáticas, Solvers con firmas idénticas, Readers desacoplados), el proyecto está preparado para una evolución natural: **Un ejecutor global**.
+
+Actualmente, cada día funciona de manera aislada. Sin embargo, se podría implementar un **Patrón Strategy de Alto Nivel** para ejecutar cualquier problema desde un único punto de entrada universal.
+
+### Implementación Propuesta
+
+1.  **Extracción de Comunes:** Mover las interfaces `Solver` e `InstructionReader` a un paquete compartido (e.g., `software.aoc.common`).
+2.  **Registro de Estrategias:** Crear un mapa o registro centralizado (`Map<Integer, DayFactory>`) que asocie el número del día con su factoría correspondiente.
+3.  **Ejecución Polimórfica:** El `GlobalMain` recibiría `dia`, `parte` y `archivo` como argumentos, recuperaría la estrategia del día del mapa y ejecutaría la solución sin conocer los detalles de implementación de ese día específico.
+
+### Diagrama de la Arquitectura Global Potencial
+
+```mermaid
+classDiagram
+    direction TB
+
+    class AdventOfCodeApp {
+        -strategies: Map~Integer, DayFactory~
+        +main(args)
+    }
+
+    class DayFactory {
+        <<interface>>
+        +createReader(path) InstructionReader
+        +createSolver(part, reader) Solver
+    }
+
+    class Day02Adapter {
+        +createReader(path)
+        +createSolver(...)
+    }
+
+    class Day12Adapter {
+        +createReader(path)
+        +createSolver(...)
+    }
+
+    class Solver {
+        <<interface>>
+        +solveProblem() Object
+    }
+
+    %% Relaciones
+    AdventOfCodeApp --> DayFactory : selecciona (Strategy)
+
+    Day02Adapter ..|> DayFactory
+    Day12Adapter ..|> DayFactory
+
+    Day02Adapter ..> Solver : crea (Day02Solver)
+    Day12Adapter ..> Solver : crea (Day12Solver)
+
+    AdventOfCodeApp ..> Solver : ejecuta (Polimorfismo)
+```
+
+Esta estructura cumpliría totalmente con el **Open/Closed Principle**: para añadir un nuevo día (e.g., Día 13), solo habría que crear su paquete e implementaciones y registrar su factory en la App principal, sin modificar la lógica de ejecución existente.

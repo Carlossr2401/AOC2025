@@ -24,19 +24,19 @@ classDiagram
     }
 
     class Day09PartASolver {
-        -positions: PositionList
-        +Day09PartASolver(PositionList)
+        -reader: InstructionReader
+        +Day09PartASolver(InstructionReader)
         +solve() Object
     }
 
     class Day09PartBSolver {
-        -positions: PositionList
-        +Day09PartBSolver(PositionList)
+        -reader: InstructionReader
+        +Day09PartBSolver(InstructionReader)
         +solve() Object
     }
 
     class SolverFactory {
-        +createSolver(type, reader) Solver
+        +createSolver(type, reader) Solver$
     }
 
     class InstructionReader {
@@ -50,7 +50,7 @@ classDiagram
     }
 
     class ReaderFactory {
-        +createFileReader(path) InstructionReader
+        +createFileReader(path) InstructionReader$
     }
 
     class PositionList {
@@ -60,16 +60,23 @@ classDiagram
     %% Relaciones
     Main --> SolverFactory : usa
     Main --> ReaderFactory : usa
+    Main --> InstructionReader : usa (crea e inyecta)
     SolverFactory --> Day09PartASolver : crea
     SolverFactory --> Day09PartBSolver : crea
     Main ..> Solver : usa (interface)
+
     Day09PartASolver ..|> Solver : implementa
     Day09PartBSolver ..|> Solver : implementa
+
+    ReaderFactory ..> FileInstructionReader : crea
     FileInstructionReader ..|> InstructionReader : implementa
-    ReaderFactory ..> FileInstructionReader : instancia
     InstructionReader ..> PositionList : retorna
-    Day09PartASolver --> PositionList : usa
-    Day09PartBSolver --> PositionList : usa
+
+    Day09PartASolver --> InstructionReader : inyectado
+    Day09PartBSolver --> InstructionReader : inyectado
+
+    Day09PartASolver ..> PositionList : usa
+    Day09PartBSolver ..> PositionList : usa
 ```
 
 ## Estructura de Paquetes
@@ -105,10 +112,13 @@ Las interfaces `Solver` e `InstructionReader` son concisas y específicas. `Solv
 
 #### D - Dependency Inversion Principle (DIP)
 
-El código de alto nivel (`Main`) depende de abstracciones (`Solver`, `InstructionReader`), no de las clases concretas de solución o lectura. La inyección de dependencias (o en este caso, creación controlada por factorías) permite desacoplar la lógica de control de la implementación.
+El código de alto nivel (`Main`, `Solver`) depende de abstracciones (`Solver` interface, `InstructionReader` interface), no de las clases concretas de solución o lectura.
+
+- La inyección de dependencias es orquestada por `Main`, quien crea el `InstructionReader` y lo pasa a través de `SolverFactory`.
 
 ### 2. Patrones de Diseño
 
-- **Factory Pattern**: Se utilizan `SolverFactory` y `ReaderFactory` para centralizar y abstraer la lógica de creación de instancias. Esto permite que `Main` solicite un "Solver" sin preocuparse por cuál implementación específica está recibiendo.
+- **Factory Pattern**: Se utilizan `SolverFactory` y `ReaderFactory` para centralizar y abstraer la lógica de creación de instancias. `SolverFactory` ahora inyecta las dependencias necesarias.
 - **Strategy Pattern**: La interfaz `Solver` actúa como una estrategia común. `Main` puede ejecutar diferentes estrategias de resolución (`PartA` vs `PartB`) de manera uniforme.
+- **Dependency Injection**: El `InstructionReader` se inyecta en los constructores de los Solvers, permitiendo una clara separación entre la obtención de datos y su uso.
 - **Record Types**: Se hace uso extensivo de `record` de Java (e.g., `Position`, `Segment`, `FileInstructionReader`) para crear objetos inmutables de datos (DTOs) de manera concisa y segura.

@@ -16,7 +16,7 @@ public class Day10PartBSolver implements Solver {
     }
 
     @Override
-    public Object solve() {
+    public Object solve() throws java.io.IOException {
         Machines<List<Integer>> machines = parseMachines(reader.readInput());
         long totalPresses = 0;
         int i = 0;

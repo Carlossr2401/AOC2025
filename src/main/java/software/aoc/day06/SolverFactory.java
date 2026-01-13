@@ -9,9 +9,7 @@ public class SolverFactory {
         A, B
     }
 
-    public static Solver createSolver(Part part, String filePath) {
-        InstructionReader reader = ReaderFactory.createFileReader(filePath);
-        
+    public static Solver createSolver(Part part, InstructionReader reader) {
         switch (part) {
             case A:
                 return new Day06ASolver(reader);

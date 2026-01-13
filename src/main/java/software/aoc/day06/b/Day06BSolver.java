@@ -14,18 +14,14 @@ public class Day06BSolver implements Solver {
     }
 
     @Override
-    public long solve() {
-        try {
-            List<String> lines = reader.readAllLines();
-            Grid grid = new Grid(lines);
-            ProblemScanner scanner = new ProblemScanner(grid);
-            List<Problem> problems = scanner.scan();
+    public long solve() throws IOException {
+        List<String> lines = reader.readAllLines();
+        Grid grid = new Grid(lines);
+        ProblemScanner scanner = new ProblemScanner(grid);
+        List<Problem> problems = scanner.scan();
 
-            return problems.stream()
-                    .mapToLong(Problem::solve)
-                    .sum();
-        } catch (IOException e) {
-            throw new RuntimeException("Error scanning/reading data", e);
-        }
+        return problems.stream()
+                .mapToLong(Problem::solve)
+                .sum();
     }
 }

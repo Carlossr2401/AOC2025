@@ -16,15 +16,11 @@ public class Day08PartBSolver implements Solver {
     }
 
     @Override
-    public Object solve() {
-        try {
-            JunctionBoxList allBoxes = reader.readAllData();
-            List<Connection> allConnections = generateConnections(allBoxes);
-            
-            return solveProblem(allBoxes, allConnections);
-        } catch (IOException e) {
-            throw new RuntimeException("Error reading input file", e);
-        }
+    public Object solve() throws IOException {
+        JunctionBoxList allBoxes = reader.readAllData();
+        List<Connection> allConnections = generateConnections(allBoxes);
+        
+        return solveProblem(allBoxes, allConnections);
     }
 
     private List<Connection> generateConnections(JunctionBoxList allBoxes) {

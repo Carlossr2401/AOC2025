@@ -1,5 +1,7 @@
 package software.aoc.day12.service;
 
+import software.aoc.day12.InstructionReader;
+import software.aoc.day12.Solver;
 import software.aoc.day12.model.Grid;
 import software.aoc.day12.model.RegionProblem;
 import software.aoc.day12.model.Shape;
@@ -14,40 +16,34 @@ import java.util.Optional;
  * High-level orchestrator for Day 12.
  * Connects the I/O, Parsing, and Logic layers.
  */
-public class Day12Solver {
+public class Day12Solver implements Solver {
 
-    private final FileInstructionReader fileReader;
+    private final InstructionReader reader;
     private final InputParser inputParser;
     private final PlacementStrategy placementStrategy;
 
-    public Day12Solver(FileInstructionReader fileReader, InputParser inputParser, PlacementStrategy placementStrategy) {
-        this.fileReader = fileReader;
+    public Day12Solver(InstructionReader reader, InputParser inputParser, PlacementStrategy placementStrategy) {
+        this.reader = reader;
         this.inputParser = inputParser;
         this.placementStrategy = placementStrategy;
     }
 
-    public void solve(String fileName) {
-        try {
-            System.out.println("Solving for file: " + fileName);
-            List<String> lines = fileReader.readFile(fileName);
+    @Override
+    public Object solveProblem() throws IOException {
+        System.out.println("Solving problem...");
+        List<String> lines = reader.readInput();
 
-            // 1. Parse Domain Objects
-            List<Shape> allShapes = inputParser.parseShapes(lines);
-            System.out.println("Parsed " + allShapes.size() + " unique shapes.");
+        // 1. Parse Domain Objects
+        List<Shape> allShapes = inputParser.parseShapes(lines);
+        System.out.println("Parsed " + allShapes.size() + " unique shapes.");
 
-            List<RegionProblem> problems = inputParser.parseProblems(lines);
-            System.out.println("Parsed " + problems.size() + " region problems.");
+        List<RegionProblem> problems = inputParser.parseProblems(lines);
+        System.out.println("Parsed " + problems.size() + " region problems.");
 
-            // 2. Execute Logic
-            int solvedCount = processProblems(problems, allShapes);
+        // 2. Execute Logic
+        int solvedCount = processProblems(problems, allShapes);
 
-            // 3. Output Result
-            System.out.println("\nFinal Answer: " + solvedCount);
-
-        } catch (IOException e) {
-            System.err.println("Error reading file: " + e.getMessage());
-            e.printStackTrace();
-        }
+        return solvedCount;
     }
 
     private int processProblems(List<RegionProblem> problems, List<Shape> allShapes) {

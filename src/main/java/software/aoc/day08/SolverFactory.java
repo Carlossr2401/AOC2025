@@ -4,18 +4,13 @@ import software.aoc.day08.a.Day08PartASolver;
 import software.aoc.day08.b.Day08PartBSolver;
 
 public class SolverFactory {
-
-    private final ReaderFactory readerFactory;
-
-    public SolverFactory() {
-        this.readerFactory = new ReaderFactory();
-    }
-
-    public Solver createPartASolver(String path) {
-        return new Day08PartASolver(readerFactory.createFileReader(path));
-    }
-
-    public Solver createPartBSolver(String path) {
-        return new Day08PartBSolver(readerFactory.createFileReader(path));
+    public static Solver createSolver(String part, InstructionReader<JunctionBoxList> reader) {
+        if ("A".equalsIgnoreCase(part)) {
+            return new Day08PartASolver(reader);
+        } else if ("B".equalsIgnoreCase(part)) {
+            return new Day08PartBSolver(reader);
+        } else {
+            throw new IllegalArgumentException("Unknown solver part: " + part);
+        }
     }
 }

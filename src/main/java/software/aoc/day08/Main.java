@@ -4,14 +4,15 @@ import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        SolverFactory factory = new SolverFactory();
+        String path = "src/main/java/software/aoc/day08/resources/input";
+        InstructionReader<JunctionBoxList> reader = ReaderFactory.createFileReader(path);
         
         System.out.println("Part A Solution:");
-        Solver solverA = factory.createPartASolver("src/main/java/software/aoc/day08/resources/input");
+        Solver solverA = SolverFactory.createSolver("A", reader);
         System.out.println(solverA.solve());
 
         System.out.println("Part B Solution:");
-        Solver solverB = factory.createPartBSolver("src/main/java/software/aoc/day08/resources/input");
+        Solver solverB = SolverFactory.createSolver("B", reader);
         System.out.println(solverB.solve());
     }
 }

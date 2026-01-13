@@ -11,6 +11,8 @@ El desafío consiste en ayudar a los Elfos a conectar cajas de conexiones eléct
 
 El proyecto sigue una arquitectura modular estricta basada en principios SOLID y patrones de diseño. A continuación se muestra el diagrama de clases que rige la solución para ambos apartados:
 
+### 4. Diagrama de Arquitectura
+
 ```mermaid
 classDiagram
     %% Core Interfaces & Common Classes
@@ -62,13 +64,11 @@ classDiagram
 
     %% Factories & IO
     class SolverFactory {
-        -readerFactory: ReaderFactory
-        +createPartASolver(path) Solver
-        +createPartBSolver(path) Solver
+        +createSolver(part, reader) Solver$
     }
 
     class ReaderFactory {
-        +createFileReader(path) InstructionReader
+        +createFileReader(path) InstructionReader$
     }
 
     class FileInstructionReader {
@@ -89,7 +89,8 @@ classDiagram
 
     %% Relationships
     Main --> SolverFactory : uses
-    SolverFactory *-- ReaderFactory : has
+    Main --> ReaderFactory : uses
+    Main --> InstructionReader : uses (creates&injects)
     SolverFactory ..> Day08PartASolver : creates
     SolverFactory ..> Day08PartBSolver : creates
 
@@ -148,10 +149,12 @@ Las interfaces `Solver` e `InstructionReader` son concisas y especifican solo lo
 
 #### D - Dependency Inversion Principle (DIP)
 
-El código de alto nivel (`Main`, `Solver`) depende de abstracciones (`Solver` interface, `InstructionReader` interface), no de implementaciones concretas. La inyección de dependencias se realiza a través del constructor del Solver.
+El código de alto nivel (`Main`, `Solver`) depende de abstracciones (`Solver` interface, `InstructionReader` interface), no de implementaciones concretas.
+
+- La inyección de dependencias (`InstructionReader` en `SolverFactory`) se coordina desde el `Main`, invirtiendo el control de creación.
 
 ### 2. Patrones de Diseño
 
-- **Factory Pattern**: Se utilizan `SolverFactory` y `ReaderFactory` para centralizar la creación de objetos complejos y ocultar la lógica de instanciación al cliente (`Main`).
+- **Factory Pattern**: Se utilizan `SolverFactory` y `ReaderFactory` para centralizar la creación de objetos complejos. `SolverFactory` ahora recibe las dependencias necesarias.
 - **Strategy Pattern**: La interfaz `Solver` actúa como una estrategia, permitiendo que `Main` ejecute cualquier implementación de resolución de problemas sin conocer los detalles internos.
-- **Dependency Injection**: El `Reader` se inyecta en el `Solver`, permitiendo desacoplar la obtención de datos de su procesamiento.
+- **Dependency Injection**: El `InstructionReader` se crea en `Main` y se inyecta en los Solvers a través de la fábrica, permitiendo desacoplar la obtención de datos de su procesamiento.

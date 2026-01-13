@@ -1,5 +1,5 @@
 package software.aoc.day11;
 
 public interface Solver {
-    long solveProblem();
+    Object solveProblem() throws java.io.IOException;
 }

@@ -8,8 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public record FileInstructionReader(String filePath) {
+public record FileInstructionReader(String filePath) implements InstructionReader {
 
+    @Override
     public Graph readGraph() throws IOException {
         List<String> lines = Files.readAllLines(Path.of(filePath));
         Map<String, List<String>> adjacencyList = new HashMap<>();

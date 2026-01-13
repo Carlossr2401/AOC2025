@@ -15,13 +15,9 @@ public class Day07BSolver implements Solver {
     }
 
     @Override
-    public Object solve() {
-        try {
-            BeanMap map = reader.readAllData();
-            BeanSearcher searcher = new BeanSearcher(map, new TimelineCountStrategy());
-            return searcher.search();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read input data", e);
-        }
+    public Object solve() throws IOException {
+        BeanMap map = reader.readAllData();
+        BeanSearcher searcher = new BeanSearcher(map, new TimelineCountStrategy());
+        return searcher.search();
     }
 }

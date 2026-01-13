@@ -4,19 +4,16 @@ import java.io.IOException;
 
 public class Main {
 
-    static void main() throws IOException {
-        Solver solver;
+    public static void main(String[] args) throws IOException {
         String path = "src/main/java/software/aoc/day10/resources/input";
-        ReaderFactory readerFactory = new ReaderFactory();
-        InstructionReader reader = readerFactory.createFileReader(path);
-        SolverFactory solverFactory = new SolverFactory();
+        InstructionReader reader = ReaderFactory.createFileReader(path);
         
         System.out.println("--- Part A ---");
-        solver = solverFactory.createSolver("A", reader);
-        System.out.println("Result Part A: " + solver.solve());
+        Solver solverA = SolverFactory.createSolver("A", reader);
+        System.out.println("Result Part A: " + solverA.solve());
         
         System.out.println("--- Part B ---");
-        solver = solverFactory.createSolver("B", reader);
-        System.out.println("Result Part B: " + solver.solve());
+        Solver solverB = SolverFactory.createSolver("B", reader);
+        System.out.println("Result Part B: " + solverB.solve());
     }
 }

@@ -1,21 +1,25 @@
 package software.aoc.day12.app;
 
+import software.aoc.day12.*;
 import software.aoc.day12.service.*;
 
+import java.io.IOException;
+
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         // 1. Composition Root / Dependency Injection
         ShapeFactory shapeFactory = new ShapeFactory();
         InputParser inputParser = new Day12InputParser(shapeFactory);
-        FileInstructionReader fileReader = new FileInstructionReader();
+        
+        String path = "src/main/java/software/aoc/day12/resources/input";
+        InstructionReader reader = ReaderFactory.createFileReader(path);
+        
         PlacementStrategy strategy = new BacktrackingSolver();
 
         // 2. Orchestrator
-        Day12Solver application = new Day12Solver(fileReader, inputParser, strategy);
+        Solver solver = SolverFactory.createSolver("A", reader, inputParser, strategy);
 
         // 3. Execution
-        String fileName = "input";
-
-        application.solve(fileName);
+        System.out.println("Final Answer: " + solver.solveProblem());
     }
 }

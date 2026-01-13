@@ -9,7 +9,7 @@ import java.util.List;
 public record FileInstructionReader(String filePath) implements InstructionReader {
 
     @Override
-    public List<String> readInput() {
+    public List<String> readInput() throws IOException {
         List<String> lines = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             String line;
@@ -18,8 +18,6 @@ public record FileInstructionReader(String filePath) implements InstructionReade
                     lines.add(line);
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Error reading file: " + filePath, e);
         }
         return lines;
     }

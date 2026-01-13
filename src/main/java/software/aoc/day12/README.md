@@ -19,14 +19,35 @@ classDiagram
         }
     }
 
-    %% Capa de Servicio
-    namespace service {
-        class Day12Solver {
-            +solve(String fileName)
+    %% Capa de Dominio/Servicio
+    namespace software_aoc_day12 {
+        class Solver {
+            <<interface>>
+            +solveProblem() Object
+        }
+
+        class InstructionReader {
+            <<interface>>
+            +readInput() List~String~
         }
 
         class FileInstructionReader {
-            +readFile(String fileName) List~String~
+            +readInput() List~String~
+        }
+
+        class ReaderFactory {
+            +createFileReader(path) InstructionReader$
+        }
+
+        class SolverFactory {
+            +createSolver(type, reader, parser, strategy) Solver$
+        }
+    }
+
+    %% Capa de Servicio
+    namespace service {
+        class Day12Solver {
+            +solveProblem() Object
         }
 
         class InputParser {
@@ -73,13 +94,21 @@ classDiagram
     }
 
     %% Relaciones
-    Main --> Day12Solver : Orquesta y Configura
-    Main --> BacktrackingSolver : Inyecta
-    Main --> Day12InputParser : Inyecta
+    Main --> SolverFactory : usa
+    Main --> ReaderFactory : usa
+    Main --> InstructionReader : usa (inyecta)
+    Main --> PlacementStrategy : instancia
+    Main --> InputParser : instancia
 
-    Day12Solver --> FileInstructionReader : Usa (I/O)
-    Day12Solver --> InputParser : Usa (Abstracción)
-    Day12Solver --> PlacementStrategy : Usa (Abstracción)
+    SolverFactory --> Solver : crea (Day12Solver)
+    ReaderFactory --> FileInstructionReader : crea
+
+    Day12Solver ..|> Solver : implementa
+    FileInstructionReader ..|> InstructionReader : implementa
+
+    Day12Solver --> InstructionReader : inyectado
+    Day12Solver --> InputParser : inyectado (DIP)
+    Day12Solver --> PlacementStrategy : inyectado (DIP)
 
     Day12InputParser ..|> InputParser : Implementa
     BacktrackingSolver ..|> PlacementStrategy : Implementa
@@ -91,31 +120,34 @@ classDiagram
 
 ## Estructura de Paquetes
 
-- `software.aoc.day12.app`: Contiene el **Punto de Entrada**. `Main` actúa como **Composition Root**, configurando todas las dependencias antes de iniciar la ejecución.
-- `software.aoc.day12.service`: Contiene la lógica de negocio, interfaces de servicio, el orquestador `Day12Solver`, factorías y estrategias.
-- `software.aoc.day12.model`: Contiene los objetos de dominio puros (`Shape`, `Grid`, `RegionProblem`) que encapsulan el estado y comportamiento básico de los datos.
+- `software.aoc.day12`: **Núcleo Común**. Contiene las interfaces (`Solver`, `InstructionReader`), sus implementaciones/factorías (`FileInstructionReader`, `SolverFactory`, `ReaderFactory`).
+- `software.aoc.day12.app`: Contiene el **Punto de Entrada**. `Main` actúa como **Composition Root**, orquestando la creación de dependencias.
+- `software.aoc.day12.service`: Contiene la lógica de negocio, interfaces de servicio, el resolvedor principal `Day12Solver` (que implementa `Solver`), factorías y estrategias.
+- `software.aoc.day12.model`: Contiene los objetos de dominio puros (`Shape`, `Grid`, `RegionProblem`).
 
 ## Patrones y Principios Aplicados
 
-### 1. Composition Root (Inversión de Control)
+### 1. Composition Root y Dependency Injection
 
-La clase `Main` no contiene lógica de negocio. Su única responsabilidad es instanciar las implementaciones concretas (`BacktrackingSolver`, `Day12InputParser`) e inyectarlas en el orquestador principal (`Day12Solver`). Esto facilita el testing y el cambio de implementaciones.
+`Main` orquesta toda la creación de dependencias, inyectando `InstructionReader`, `InputParser` y `PlacementStrategy` en el `Solver` a través de la `SolverFactory`.
 
 ### 2. Strategy Pattern
 
-Se define la interfaz `PlacementStrategy`. Actualmente usamos `BacktrackingSolver`, pero esta abstracción permitiría cambiar fácilmente a un algoritmo más complejo (como "Dancing Links" - Algorithm X) sin modificar el orquestador ni el resto del sistema.
+Se define `PlacementStrategy` para intercambiar algoritmos de resolución (e.g., Backtracking vs DLX). `SolverFactory` recibe la estrategia a utilizar.
 
 ### 3. Factory Pattern
 
-`ShapeFactory` encapsula la lógica compleja de convertir una lista de cadenas de caracteres (el input crudo) en un objeto `Shape` válido e inmutable. Esto limpia el parser y centraliza la creación de objetos.
+- **ReaderFactory**: Centraliza la creación del lector.
+- **SolverFactory**: Centraliza la creación del Solver.
+- **ShapeFactory**: Encapsula el parseo de formas.
 
 ### 4. Single Responsibility Principle (SRP)
 
-- **FileInstructionReader**: Solo sabe leer ficheros.
-- **InputParser**: Solo sabe transformar texto en objetos.
-- **Day12Solver**: Solo sabe coordinar el flujo de ejecución.
-- **BacktrackingSolver**: Solo sabe resolver el puzzle algorítmico.
+- **InstructionReader**: Solo IO.
+- **InputParser**: Solo estructura datos.
+- **Day12Solver**: Solo coordina (lee, parsea, delega resolución).
+- **BacktrackingSolver**: Solo resuelve.
 
 ### 5. Dependency Inversion Principle (DIP)
 
-El `Day12Solver` (módulo de alto nivel) no depende de las clases concretas de bajo nivel (`BacktrackingSolver` o `Day12InputParser`), sino de sus abstracciones (`PlacementStrategy` e `InputParser`).
+`Day12Solver` depende de abstracciones (`InstructionReader`, `InputParser`, `PlacementStrategy`) inyectadas desde fuera, no de concreciones.

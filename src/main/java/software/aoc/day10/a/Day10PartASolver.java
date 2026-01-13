@@ -14,11 +14,11 @@ public class Day10PartASolver implements Solver {
     }
 
     @Override
-    public Object solve() {
+    public Object solve() throws java.io.IOException {
         return solveProblem();
     }
 
-    public int solveProblem() {
+    public int solveProblem() throws java.io.IOException {
         Machines<LightConfiguration> allMachines = parseMachines(reader.readInput());
         int totalPresses = 0;
         for (Machine<LightConfiguration> machine : allMachines) {

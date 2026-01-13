@@ -19,15 +19,24 @@ classDiagram
 
         class Solver {
             <<interface>>
-            +solveProblem() long
+            +solveProblem() Object
+        }
+
+        class InstructionReader {
+            <<interface>>
+            +readGraph() Graph
         }
 
         class FileInstructionReader {
             +readGraph() Graph
         }
 
+        class ReaderFactory {
+            +createFileReader(path : String) InstructionReader$
+        }
+
         class SolverFactory {
-            +createSolver(type : String, graph : Graph, counter : PathCounter) Solver
+            +createSolver(type : String, reader : InstructionReader, counter : PathCounter) Solver$
         }
 
         class Graph {
@@ -53,41 +62,44 @@ classDiagram
     %% --- Paquete Parte A: software.aoc.day11.a ---
     namespace software_aoc_day11_a {
         class Day11PartASolver {
-            +solveProblem() long
+            +solveProblem() Object
         }
     }
 
     %% --- Paquete Parte B: software.aoc.day11.b ---
     namespace software_aoc_day11_b {
         class Day11PartBSolver {
-            +solveProblem() long
+            +solveProblem() Object
         }
     }
 
     %% Relaciones Principales
     Main ..> SolverFactory : usa
-    Main ..> FileInstructionReader : usa
+    Main ..> ReaderFactory : usa
+    Main ..> InstructionReader : usa (inyecta)
     Main ..> TimedPathCounter : instancia
     Main ..> RecursivePathCounter : instancia
 
     SolverFactory ..> Solver : crea instancias de
-    FileInstructionReader ..> Graph : crea
+    ReaderFactory ..> FileInstructionReader : crea
 
     %% Implementaciones de Interfaces
     Day11PartASolver ..|> Solver : implementa
     Day11PartBSolver ..|> Solver : implementa
+    FileInstructionReader ..|> InstructionReader : implementa
     RecursivePathCounter ..|> PathCounter : implementa
     TimedPathCounter ..|> PathCounter : implementa
 
     %% Relaciones de Uso (Dependencias)
-    Solver --> Graph : usa
+    Day11PartASolver --> InstructionReader : inyectado
+    Day11PartBSolver --> InstructionReader : inyectado
     Solver --> PathCounter : usa
     TimedPathCounter --> PathCounter : decora (delegación)
-```
+    InstructionReader ..> Graph : produce
 
 ### Estructura de Paquetes
 
-- `software.aoc.day11`: **Núcleo Común**. Contiene las interfaces (`Solver`, `PathCounter`), implementaciones genéricas (`RecursivePathCounter`, `TimedPathCounter`), modelos (`Graph`, `FileInstructionReader`), la Factoría (`SolverFactory`) y el punto de entrada (`Main`).
+- `software.aoc.day11`: **Núcleo Común**. Contiene las interfaces (`Solver`, `PathCounter`, `InstructionReader`), implementaciones genéricas (`RecursivePathCounter`, `TimedPathCounter`, `FileInstructionReader`), modelos (`Graph`), las Factorías (`SolverFactory`, `ReaderFactory`) y el punto de entrada (`Main`).
 - `software.aoc.day11.a`: **Estrategia A**. Implementación específica para la Parte 1 (`Day11PartASolver`).
 - `software.aoc.day11.b`: **Estrategia B**. Implementación específica para la Parte 2 (`Day11PartBSolver`).
 
@@ -96,23 +108,25 @@ classDiagram
 ### 1. Strategy Pattern
 
 - **Solver**: Permitimos seleccionar dinámicamente la estrategia de resolución (`Day11PartASolver` o `Day11PartBSolver`) a través del `SolverFactory`.
-- **PathCounter**: La lógica de conteo de caminos se encapsula en una estrategia (`PathCounter`). Aunque actualmente usamos `RecursivePathCounter`, podríamos cambiarla por una iterativa sin afectar a los Solvers.
+- **PathCounter**: La lógica de conteo de caminos se encapsula en una estrategia (`PathCounter`).
 
 ### 2. Factory Pattern
 
-- `SolverFactory`: Centraliza la creación de los objetos `Solver`. Recibe el grafo y el contador de caminos ya instanciados y devuelve el resolvedor adecuado (A o B) según la entrada.
+- **ReaderFactory**: Centraliza la creación del `InstructionReader`, devolviendo una implementación concreta.
+- **SolverFactory**: Centraliza la creación de los objetos `Solver`. Recibe el `InstructionReader` y el `PathCounter` inyectados desde el `Main` y devuelve el resolvedor adecuado.
 
 ### 3. Decorator Pattern
 
-- `TimedPathCounter`: Implementa el patrón Decorator sobre `PathCounter`. Envuelve una implementación concreta (como `RecursivePathCounter`) para añadir funcionalidad de medición de tiempo sin modificar la lógica original del algoritmo.
+- **TimedPathCounter**: Implementa el patrón Decorator sobre `PathCounter`. Envuelve una implementación concreta (como `RecursivePathCounter`) para añadir funcionalidad de medición de tiempo sin modificar la lógica original del algoritmo.
 
 ### 4. Dependency Injection (DIP)
 
-Los `Solvers` no crean sus propias dependencias. Reciben el `Graph` y el `PathCounter` a través de su constructor. Esto reduce el acoplamiento y facilita el testeo.
+Los `Solvers` no crean sus propias dependencias (lectores o contadores). Reciben el `InstructionReader` y el `PathCounter` a través de su constructor, orquestados por el `Main`. Esto reduce el acoplamiento y facilita el testeo.
 
 ### 5. Single Responsibility Principle (SRP)
 
-- **FileInstructionReader**: Se encarga únicamente de leer el archivo y construir el grafo.
+- **InstructionReader**: Define el contrato para leer el grafo. `FileInstructionReader` implementa la lectura de archivo.
 - **PathCounter**: Se encarga únicamente del algoritmo de búsqueda de caminos.
-- **Solver**: Se encarga de orquestar la resolución del problema específico de cada parte, usando el grafo y el contador.
-- **Main**: Se encarga de la configuración inicial y la inyección de dependencias.
+- **Solver**: Orquesta la resolución, pidiendo al lector el grafo y usando el contador para obtener resultados.
+- **Main**: Se encarga de la configuración inicial, creación de dependencias y orquestación.
+```

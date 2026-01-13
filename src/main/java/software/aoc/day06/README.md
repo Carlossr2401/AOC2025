@@ -23,6 +23,7 @@ En este proyecto se aplican estrictamente los principios SOLID y Clean Code, jun
   - `InstructionReader` define un contrato mínimo (`readAllLines`), evitando dependencias innecesarias de métodos de lectura complejos no utilizados por todos los clientes.
 - **Dependency Inversion Principle (DIP)**:
   - Los módulos de alto nivel (`Main`, Solvers) dependen de abstracciones (`Solver`, `InstructionReader`), desacoplándose de los detalles de implementación como el sistema de archivos.
+  - La inyección de dependencias (`InstructionReader` en `SolverFactory`) se coordina desde el `Main`, invirtiendo el control de creación.
 
 ### 2. Patrones de Diseño
 
@@ -34,7 +35,8 @@ Se han implementado patrones estándar de la industria:
   - `SolverFactory`: Encapsula la lógica de creación de los solvers, inyectando las dependencias necesarias.
   - `ReaderFactory`: Centraliza la creación del lector de instrucciones.
 - **Dependency Injection**:
-  - `InstructionReader` se inyecta en los constructores de los Solvers. `Grid` se inyecta en `ProblemScanner`. Esto promueve un acoplamiento débil y facilita el testing.
+  - `InstructionReader` se inyecta en los constructores de los Solvers a través de `SolverFactory`. `Grid` se inyecta en `ProblemScanner`.
+  - `Main` orquesta la creación del lector y su inyección.
 
 ### 3. Clean Code
 
@@ -51,7 +53,11 @@ classDiagram
     }
 
     class SolverFactory {
-        +createSolver(part: Part, filePath: String) Solver$
+        +createSolver(part: Part, reader: InstructionReader) Solver$
+    }
+
+    class ReaderFactory {
+        +createFileReader(filePath: String) InstructionReader$
     }
 
     class Solver {
@@ -102,10 +108,11 @@ classDiagram
 
     %% Relaciones
     Main ..> SolverFactory : usa
+    Main ..> ReaderFactory : usa
+    Main ..> InstructionReader : usa (inyecta)
     SolverFactory ..> Solver : crea
     SolverFactory ..> Day06ASolver : instancia
     SolverFactory ..> Day06BSolver : instancia
-    SolverFactory ..> ReaderFactory : usa
 
     Day06ASolver ..|> Solver : implementa
     Day06BSolver ..|> Solver : implementa

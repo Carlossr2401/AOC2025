@@ -32,11 +32,11 @@ classDiagram
         }
 
         class SolverFactory {
-            +createSolver(type : String, reader : InstructionReader) Solver
+            +createSolver(type : String, reader : InstructionReader) Solver$
         }
 
         class ReaderFactory {
-            +createFileReader(path : String) InstructionReader
+            +createFileReader(path : String) InstructionReader$
         }
 
         class Machines~T~ {
@@ -76,6 +76,7 @@ classDiagram
     %% Relaciones Principales
     Main ..> SolverFactory : usa
     Main ..> ReaderFactory : usa
+    Main ..> InstructionReader : usa (inyecta)
     SolverFactory ..> Solver : crea instancias de
     ReaderFactory ..> FileInstructionReader : crea
 
@@ -107,12 +108,12 @@ El `Main` y `SolverFactory` permiten seleccionar dinámicamente la estrategia de
 
 ### 2. Factory Pattern
 
-- `ReaderFactory`: Crea una instancia de lectura de archivos simple que retorna las líneas crudas del fichero.
-- `SolverFactory`: Recibe las líneas leídas y decide qué Solver instanciar, inyectando los datos necesarios.
+- `ReaderFactory`: Ofrece un método estático para crear instancias de lectura de archivos.
+- `SolverFactory`: Ofrece un método estático que recibe el `InstructionReader` inyectado y crea el Solver adecuado, centralizando la lógica de creación.
 
 ### 3. Dependency Injection (DIP)
 
-Los Solvers dependen de la abstracción `InstructionReader` para obtener sus datos. Esto permite que en el futuro se puedan inyectar `MockReaders` para pruebas unitarias sin tocar el código de los Solvers.
+Los Solvers dependen de la abstracción `InstructionReader` para obtener sus datos. `Main` se encarga de orquestar esta dependencia, creando el lector y pasándolo a la factoría de solvers. Esto invierte el control y desacopla la creación de los componentes de su uso.
 
 ### 4. Generics y Reutilización de Código
 

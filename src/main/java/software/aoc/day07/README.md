@@ -23,8 +23,8 @@ En este proyecto se aplican estrictamente los principios SOLID y Clean Code, jun
   - `InstructionReader` define un contrato mínimo (`readAllData`), evitando dependencias innecesarias.
   - `BeanProcessor` define solo los métodos necesarios (`onStart`, `processSplit`, `processStraight`) para interactuar con la búsqueda.
 - **Dependency Inversion Principle (DIP)**:
-  - Los módulos de alto nivel (`BeanSearcher`) dependen de abstracciones (`BeanProcessor`), no de implementaciones concretas.
-  - Los `Solver` dependen de `InstructionReader`.
+  - Los módulos de alto nivel (`Main`, Solvers) dependen de abstracciones (`Solver`, `InstructionReader`), desacoplándose de los detalles de implementación como el sistema de archivos.
+  - La inyección de dependencias (`InstructionReader` en `SolverFactory`) se coordina desde el `Main`, invirtiendo el control de creación.
 
 ### 2. Patrones de Diseño
 
@@ -34,10 +34,11 @@ Se han implementado patrones estándar de la industria:
   - **Nivel Dominio**: La interfaz `BeanProcessor` define la estrategia de procesamiento. `BeanSearcher` actúa como contexto, y las implementaciones como `SplitCountStrategy` aplican la lógica concreta.
   - **Nivel Aplicación**: La interfaz `Solver` permite la ejecución polimórfica de la solución.
 - **Factory Pattern (Fábrica)**:
-  - `SolverFactory`: Centraliza la creación de los solvers, encapsulando la decisión de qué estrategia utilizar.
+  - `SolverFactory`: Centraliza la creación de los solvers, encapsulando la decisión de qué estrategia utilizar e inyectando las dependencias necesarias.
   - `ReaderFactory`: Abstrae la instanciación del mecanismo de lectura.
 - **Dependency Injection**:
-  - Las dependencias (`BeanProcessor`, `InstructionReader`) se inyectan a través de los constructores, facilitando el testing y la modularidad.
+  - Las dependencias (`BeanProcessor`, `InstructionReader`) se inyectan a través de los constructores.
+  - `Main` orquesta la creación del lector y su inyección en la fábrica.
 
 ### 3. Clean Code
 
@@ -54,7 +55,11 @@ classDiagram
     }
 
     class SolverFactory {
-        +createSolver(type: String, path: String) Solver
+        +createSolver(type: String, reader: InstructionReader) Solver$
+    }
+
+    class ReaderFactory {
+        +createFileReader(path: String) InstructionReader$
     }
 
     class Solver {
@@ -117,6 +122,8 @@ classDiagram
 
     %% Relaciones
     Main ..> SolverFactory : usa
+    Main ..> ReaderFactory : usa
+    Main ..> InstructionReader : usa (inyecta)
     SolverFactory ..> Solver : crea
     SolverFactory ..> Day07ASolver : instancia
     SolverFactory ..> Day07BSolver : instancia

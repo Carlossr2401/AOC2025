@@ -5,14 +5,15 @@ import software.aoc.day10.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 
 public class Day10PartBSolver implements Solver {
     private final InstructionReader reader;
+    private final LinearSolver linearSolver;
 
     public Day10PartBSolver(InstructionReader reader) {
         this.reader = reader;
+        this.linearSolver = new MatrixProcessor();
     }
 
     @Override
@@ -26,7 +27,7 @@ public class Day10PartBSolver implements Solver {
             if (minPresses != null) {
                 totalPresses += minPresses;
             } else {
-                System.err.println("No solution for machine " + i);
+                System.err.println("No solution for machine " + (++i));
             }
         }
         return totalPresses;
@@ -36,46 +37,10 @@ public class Day10PartBSolver implements Solver {
         List<Machine<List<Integer>>> list = new ArrayList<>();
         for (String line : lines) {
             if (!line.trim().isEmpty()) {
-                list.add(createMachine(line));
+                list.add(MachineParser.parseForPartB(line));
             }
         }
         return new Machines<>(list);
-    }
-
-    private Machine<List<Integer>> createMachine(String line) {
-        // Parse targets from {x,y,z...}
-        String targetPart = line.substring(line.indexOf('{') + 1, line.indexOf('}'));
-        List<Integer> targets = parseTargets(targetPart);
-
-        // Parse buttons from (x,y...)
-        List<Button> buttons = new ArrayList<>();
-        Matcher buttonMatcher = Pattern.compile("\\(([\\d,]+)\\)").matcher(line);
-        while (buttonMatcher.find()) {
-            buttons.add(parseButton(buttonMatcher.group(1)));
-        }
-
-        return new Machine<>(targets, buttons);
-    }
-
-    private List<Integer> parseTargets(String targetStr) {
-        String[] parts = targetStr.split(",");
-        List<Integer> targets = new ArrayList<>();
-        for (String s : parts) {
-            targets.add(Integer.parseInt(s.trim()));
-        }
-        return targets;
-    }
-
-    private Button parseButton(String buttonIndicesStr) {
-        String cleanStr = buttonIndicesStr.replaceAll("\\s+", "");
-        String[] indices = cleanStr.split(",");
-        List<Integer> lightIndices = new ArrayList<>();
-        for (String indexStr : indices) {
-            if (!indexStr.isEmpty()) {
-                lightIndices.add(Integer.parseInt(indexStr));
-            }
-        }
-        return new Button(lightIndices);
     }
 
     private Long solveMachine(Machine<List<Integer>> machine) {
@@ -107,130 +72,14 @@ public class Day10PartBSolver implements Solver {
             t[k] = machine.configuration().get(k);
         }
 
-        return new LinearSystemSolver().solve(A, t, bounds);
-    }
-
-    private static class LinearSystemSolver {
-        private static final double EPSILON = 1e-9;
-
-        public Long solve(double[][] A, double[] t, long[] bounds) {
-            int rows = A.length;
-            int cols = A[0].length;
-
-            // Gaussian elimination to RREF
-            int pivotRow = 0;
-            int[] pivotColForRow = new int[rows];
-            Arrays.fill(pivotColForRow, -1);
-            boolean[] isPivotCol = new boolean[cols];
-
-            for (int col = 0; col < cols && pivotRow < rows; col++) {
-                // Find pivot
-                int sel = -1;
-                for (int row = pivotRow; row < rows; row++) {
-                    if (Math.abs(A[row][col]) > EPSILON) {
-                        sel = row;
-                        break;
+        return linearSolver.solve(A, t, bounds)
+                .map(solution -> {
+                    long cost = 0;
+                    for (long s : solution) {
+                        cost += s;
                     }
-                }
-                if (sel == -1) continue;
-
-                // Swap rows
-                double[] tempRow = A[pivotRow];
-                A[pivotRow] = A[sel];
-                A[sel] = tempRow;
-                double tempT = t[pivotRow];
-                t[pivotRow] = t[sel];
-                t[sel] = tempT;
-
-                // Normalize pivot row
-                double pivotVal = A[pivotRow][col];
-                for (int c = col; c < cols; c++) {
-                    A[pivotRow][c] /= pivotVal;
-                }
-                t[pivotRow] /= pivotVal;
-
-                // Eliminate other rows
-                for (int row = 0; row < rows; row++) {
-                    if (row != pivotRow) {
-                        double factor = A[row][col];
-                        for (int c = col; c < cols; c++) {
-                            A[row][c] -= factor * A[pivotRow][c];
-                        }
-                        t[row] -= factor * t[pivotRow];
-                    }
-                }
-
-                pivotColForRow[pivotRow] = col;
-                isPivotCol[col] = true;
-                pivotRow++;
-            }
-
-            // Check for inconsistencies (0 = non-zero)
-            for (int row = pivotRow; row < rows; row++) {
-                if (Math.abs(t[row]) > EPSILON) return null;
-            }
-
-            // Identify free variables
-            List<Integer> freeVars = new ArrayList<>();
-            for (int c = 0; c < cols; c++) {
-                if (!isPivotCol[c]) freeVars.add(c);
-            }
-
-            // Iterate free variables
-            return search(0, freeVars, new long[cols], A, t, pivotColForRow, bounds);
-        }
-
-        private Long search(int freeVarIndex, List<Integer> freeVars, long[] solution, 
-                           double[][] RREF, double[] rhs, int[] pivotColForRow, long[] bounds) {
-            if (freeVarIndex == freeVars.size()) {
-                // All free vars assigned, calculate pivots
-                // Iterate rows backwards to be safe (though RREF makes it easy: x_p = rhs - sum(free))
-                // Actually given RREF, each constraint is: x_p + sum(coeff * x_free) = rhs
-                // So x_p = rhs - sum(coeff * x_free)
-                // We can just iterate through pivot rows.
-                
-                long currentCost = 0;
-
-                // Calculate pivot variables based on free variables
-                for (int r = 0; r < pivotColForRow.length; r++) {
-                    int pCol = pivotColForRow[r];
-                    if (pCol == -1) continue; // Check next rows
-
-                    double val = rhs[r];
-                    for (int fIdx : freeVars) {
-                        val -= RREF[r][fIdx] * solution[fIdx];
-                    }
-
-                    // Check integer and non-negative
-                    long rounded = Math.round(val);
-                    if (Math.abs(rounded - val) > EPSILON && Math.abs(rounded - val) < 1.0 - EPSILON) return null; // Not integer
-                    if (rounded < 0) return null;
-
-                    solution[pCol] = rounded;
-                }
-
-                // Calculate total cost
-                for (long s : solution) currentCost += s;
-                return currentCost;
-            }
-
-            int fCol = freeVars.get(freeVarIndex);
-            Long minCost = null;
-
-            // Iterate range for this free variable
-            // Since cost is linear, we might not need to scan all?
-            // But coefficients can be negative, so function is not monotonic w.r.t free var.
-            // We just scan.
-            for (long val = 0; val <= bounds[fCol]; val++) {
-                solution[fCol] = val;
-                Long res = search(freeVarIndex + 1, freeVars, solution, RREF, rhs, pivotColForRow, bounds);
-                if (res != null) {
-                    if (minCost == null || res < minCost) {
-                        minCost = res;
-                    }
-                }
-            }
-            return minCost;
-        }
+                    return cost;
+                })
+                .orElse(null);
     }
 }

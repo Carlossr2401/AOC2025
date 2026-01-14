@@ -1,10 +1,10 @@
 # Advent of Code 2025 - Day 10
 
-Este proyecto resuelve el desafío del Día 10 de Advent of Code 2025 implementando una arquitectura robusta basada en **SOLID**, **Clean Code** y **Patrones de Diseño** (Factory y Strategy).
+Este proyecto resuelve el desafío del Día 10 de Advent of Code 2025 implementando una arquitectura robusta basada en **SOLID**, **Clean Code** y **Patrones de Diseño**.
 
 ## Arquitectura del Proyecto
 
-El código se ha refactorizado para soportar múltiples estrategias de resolución manteniendo una base común limpia y reutilizable mediante el uso de **Generics**.
+El código se ha refactorizado para soportar múltiples estrategias de resolución manteniendo una base común limpia. Se ha puesto especial énfasis en separar el **Dominio** (Máquinas, Botones), el **Parsing** (Conversión de Texto) y las **Matemáticas** (Álgebra Lineal).
 
 ### Diagrama de Clases Simplificado
 
@@ -27,16 +27,22 @@ classDiagram
             +readInput() List~String~
         }
 
-        class FileInstructionReader {
-            +readInput() List~String~
+        class LinearSolver {
+            <<interface>>
+            +solve(coefficients, results, bounds) Optional~long[]~
+        }
+
+        class MatrixProcessor {
+            +solve(...) Optional~long[]~
+        }
+
+        class MachineParser {
+            +parseForPartA(line) Machine~LightConfiguration~$
+            +parseForPartB(line) Machine~List~Integer~~$
         }
 
         class SolverFactory {
-            +createSolver(type : String, reader : InstructionReader) Solver$
-        }
-
-        class ReaderFactory {
-            +createFileReader(path : String) InstructionReader$
+            +createSolver(type, reader) Solver$
         }
 
         class Machines~T~ {
@@ -47,87 +53,62 @@ classDiagram
             +configuration() T
             +buttons() List~Button~
         }
-
-        class Button {
-            +positions() List~Integer~
-        }
     }
 
-    %% --- Paquete Parte A: software.aoc.day10.a ---
+    %% --- Solvers ---
     namespace software_aoc_day10_a {
         class Day10PartASolver {
             +solve() Object
-            -parseMachines(lines : List~String~) Machines
-        }
-
-        class LightConfiguration {
-            +configuration() List~Boolean~
         }
     }
 
-    %% --- Paquete Parte B: software.aoc.day10.b ---
     namespace software_aoc_day10_b {
         class Day10PartBSolver {
             +solve() Object
-            -parseMachines(lines : List~String~) Machines
         }
     }
 
-    %% Relaciones Principales
+    %% Relaciones
     Main ..> SolverFactory : usa
-    Main ..> ReaderFactory : usa
-    Main ..> InstructionReader : usa (inyecta)
-    SolverFactory ..> Solver : crea instancias de
-    ReaderFactory ..> FileInstructionReader : crea
+    SolverFactory ..> Solver : crea
 
-    %% Implementaciones de Interfaces
     Day10PartASolver ..|> Solver : implementa
     Day10PartBSolver ..|> Solver : implementa
-    FileInstructionReader ..|> InstructionReader : implementa
+    MatrixProcessor ..|> LinearSolver : implementa
 
-    %% Relaciones de Uso (Dependencias)
-    Day10PartASolver --> Machines : usa Machines~LightConfiguration~
-    Day10PartBSolver --> Machines : usa Machines~List~Integer~~
+    Day10PartASolver ..> MachineParser : delega parseo
+    Day10PartBSolver ..> MachineParser : delega parseo
 
-    Machines --> Machine : contiene
-    Machine --> Button : usa
-    Day10PartASolver --> LightConfiguration : usa
+    Day10PartBSolver --> LinearSolver : usa (DIP)
+
+    Day10PartASolver --> Machines : usa
+    Day10PartBSolver --> Machines : usa
 ```
-
-### Estructura de Paquetes
-
-- `software.aoc.day10`: **Núcleo Común**. Contiene las interfaces (`Solver`, `InstructionReader`), sus implementaciones genéricas o comunes (`FileInstructionReader`, `Machines`, `Machine`), las Factorías (`SolverFactory`, `ReaderFactory`) y el punto de entrada (`Main`).
-- `software.aoc.day10.a`: **Estrategia A**. Implementación específica para la Parte 1 (Solver con lógica de parseo específica y Modelos de Configuración).
-- `software.aoc.day10.b`: **Estrategia B**. Implementación específica para la Parte 2 (Solver con lógica de parseo específica).
 
 ## Patrones y Principios Aplicados
 
-### 1. Strategy Pattern
+### 1. Inversión de Dependencias (DIP) y Contratos
 
-El `Main` y `SolverFactory` permiten seleccionar dinámicamente la estrategia de resolución (`Day10PartASolver` o `Day10PartBSolver`) sin modificar la orquestación principal. Además, la lógica de **Parseo** se ha movido dentro de cada Solver, actuando como una "estrategia de interpretación" de los datos crudos.
+Se ha introducido la interfaz `LinearSolver` para aislar la lógica matemática compleja.
 
-### 2. Factory Pattern
+- **El Contrato**: `LinearSolver` define _qué_ hace el sistema (resolver un sistema lineal), sin especificar _cómo_.
+- **La Implementación**: `MatrixProcessor` implementa este contrato usando Eliminación Gaussiana.
+- **El Beneficio**: `Day10PartBSolver` solo sabe que necesita resolver un sistema, no le importa si es Gauss, Cramer o Magia.
 
-- `ReaderFactory`: Ofrece un método estático para crear instancias de lectura de archivos.
-- `SolverFactory`: Ofrece un método estático que recibe el `InstructionReader` inyectado y crea el Solver adecuado, centralizando la lógica de creación.
+### 2. Factory Pattern & Static Factory
 
-### 3. Dependency Injection (DIP)
+- **`MachineParser`**: Actúa como una Factoría Estática especializada que encapsula toda la lógica de transformación de Texto a Objetos (`String` -> `Machine`). Esto limpia los Solvers de expresiones regulares y manejo de cadenas "sucias".
+- **`SolverFactory`**: Centraliza la creación de solvers.
 
-Los Solvers dependen de la abstracción `InstructionReader` para obtener sus datos. `Main` se encarga de orquestar esta dependencia, creando el lector y pasándolo a la factoría de solvers. Esto invierte el control y desacopla la creación de los componentes de su uso.
+### 3. Single Responsibility Principle (SRP)
 
-### 4. Generics y Reutilización de Código
+Cada clase tiene una única razón para cambiar:
 
-Se ha refactorizado el modelo de datos para usar clases Genéricas (`Machines<T>` y `Machine<T>`).
+- **`MachineParser`**: Solo cambia si cambia el formato del archivo de entrada.
+- **`MatrixProcessor`**: Solo cambia si cambiamos el algoritmo matemático (ej. optimizar Gauss).
+- **`Day10PartBSolver`**: Solo cambia si cambian las reglas del puzzle (cómo interpretar la solución o calcular el costo).
+- **`InstructionReader`**: Solo cambia si cambia el origen de los datos (Archivo vs API).
 
-- **Parte A**: Usa `Machine<LightConfiguration>`.
-- **Parte B**: Usa `Machine<List<Integer>>`.
-  Esto elimina la duplicidad de código que existía anteriormente teniendo clases `Machine` separadas para cada paquete.
+### 4. Generics
 
-### 5. Iterator Pattern (Iterable)
-
-La clase contenedora `Machines<T>` implementa `Iterable<Machine<T>>`, permitiendo iterar sobre las máquinas de manera limpia y abstracta en los Solvers.
-
-### 6. Single Responsibility Principle (SRP)
-
-- **InstructionReader**: Su única responsabilidad ahora es I/O (leer lineas del disco). No sabe nada de la lógica del dominio.
-- **Solvers**: Son responsables de interpretar (parsear) esas líneas según las reglas de su parte específica (A o B) y ejecutar el algoritmo de solución.
+Uso de `Machine<T>` para reutilizar la estructura de datos entre la Parte A (Configuración de Luces) y la Parte B (Listas de Enteros).
